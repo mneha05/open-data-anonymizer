@@ -2,6 +2,8 @@ import urllib
 import pytest
 import pandas as pd
 from pandas import testing as pdt
+from faker import Faker
+from faker.providers import BaseProvider
 
 from anonympy import __version__
 from anonympy.pandas import dfAnonymizer
@@ -132,6 +134,22 @@ def test_categorical_fake(anonym_small):
                              'web': {0: 'http://www.hill.net/',
                                      1: 'http://johnson.com/'}})
     pdt.assert_frame_equal(expected, output)
+
+
+class CustomFakerProvider(BaseProvider):
+    def custom_name(self):
+        return 'custom-provider-value'
+
+
+def test_custom_faker_instance():
+    df = load_dataset('small')
+    faker = Faker()
+    faker.add_provider(CustomFakerProvider)
+    anonym = dfAnonymizer(df, faker=faker)
+
+    output = anonym.categorical_fake({'name': 'custom_name'}, inplace=False)
+    expected = pd.Series(['custom-provider-value', 'custom-provider-value'])
+    pdt.assert_series_equal(expected, output, check_names=False)
 
 
 def test_categorical_fake_auto(anonym_small):
