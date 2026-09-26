@@ -51,7 +51,8 @@ class dfAnonymizer(object):
     1   Tony    48   ...       eryan@lewis.com    656564664
     """
     def __init__(self,
-                 df: pd.DataFrame):
+                 df: pd.DataFrame,
+                 faker=None):
 
         if df.__class__.__name__ != "DataFrame":
             raise Exception(f"{df} is not a pandas DataFrame.")
@@ -83,6 +84,19 @@ class dfAnonymizer(object):
 
         self._available_methods = _utils.av_methods
         self._fake_methods = _utils.faker_methods
+
+        # Optional user-provided Faker instance. Keeping this public allows
+        # callers to add custom providers or replace the generator at runtime.
+        self.faker = faker
+
+    def _get_faker(self, locale=['en_US'], seed=None):
+        if self.faker is None:
+            Faker.seed(seed)
+            return Faker(locale=locale)
+
+        if seed is not None:
+            self.faker.seed_instance(seed)
+        return self.faker
 
     def __str__(self):
         return self._info().draw()
@@ -349,8 +363,7 @@ class dfAnonymizer(object):
         dfAnonymizer.categorical_fake : Replace values with synthetically
         generated ones by specifying which methods to apply
         '''
-        Faker.seed(seed)
-        fake = Faker(locale=locale)
+        fake = self._get_faker(locale=locale, seed=seed)
         method = getattr(fake, method)
         faked = self._df[column].apply(lambda x: method())
         if not inplace:
@@ -1185,8 +1198,7 @@ class dfAnonymizer(object):
         1   2005-05-28
         Name: birthdate, dtype: datetime64[ns]
         '''
-        Faker.seed(seed)
-        fake = Faker(locale=locale)
+        fake = self._get_faker(locale=locale, seed=seed)
 
         # if a single column is passed
         if isinstance(columns, str) or (len(columns) == 1 and
